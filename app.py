@@ -1,3 +1,45 @@
+import streamlit as st
+from openai import OpenAI, APIConnectionError, AuthenticationError, RateLimitError
+from datetime import datetime
+import traceback
+
+# ═══════════════════════════════════════════════════════════════════════
+# 1. CONFIGURACIÓN DE LA PÁGINA
+# ═══════════════════════════════════════════════════════════════════════
+
+st.set_page_config(
+    page_title="GuateEmprende IA Pro 🇬🇹",
+    page_icon="📈",
+    layout="wide",
+    initial_sidebar_state="collapsed"
+)
+
+# Contexto temporal para la IA
+fecha_hoy = datetime.now().strftime("%d de %B de %Y")
+año_actual = datetime.now().year
+año_actual_str = str(año_actual)
+
+# ═══════════════════════════════════════════════════════════════════════
+# 2. CARGAR CREDENCIALES DESDE STREAMLIT SECRETS
+# ═══════════════════════════════════════════════════════════════════════
+
+# OpenRouter usa API key propia, NO la de OpenAI
+# Base URL de OpenRouter: https://openrouter.ai/api/v1
+api_key = st.secrets.get("OPENROUTER_API_KEY", "")
+base_url = "https://openrouter.ai/api/v1"
+
+# Validación básica
+if not api_key:
+    st.error("⚠️ API Key de OpenRouter no configurada.")
+    st.markdown("""
+    **Pasos para configurar:**
+    1. Obtén tu API Key en [OpenRouter.ai](https://openrouter.ai/keys)
+    2. Ve a tu app en Streamlit Cloud → **Settings** → **Secrets**
+    3. Agrega:
+toml
+OPENROUTER_API_KEY = "sk-or-v1-tu-key-aqui"
+
+
     """)
     st.stop()
 
