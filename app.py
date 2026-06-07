@@ -97,7 +97,9 @@ def generar_pdf_binario(titulo_doc, contenido_md):
             texto_limpio = linea.replace('**', '').replace('__', '')
             pdf.multi_cell(0, 5, texto_limpio)
 
-    return pdf.output()
+    # Generar bytes para descarga
+    pdf_bytes = pdf.output(dest='S').encode('latin-1', errors='replace')
+    return pdf_bytes
 
 # ═══════════════════════════════════════════════════════════════════════
 # LÓGICA DE INTERFAZ Y CONSULTAS
@@ -105,7 +107,7 @@ def generar_pdf_binario(titulo_doc, contenido_md):
 st.markdown(f"""
     <div style="background-color:#1a5f2a; padding:20px; border-radius:10px; text-align:center;">
         <h1 style="color:white; margin:0;">🇬🇹 GuateEmprende IA Pro</h1>
-        <p style="color:#d4edda; margin:5px;">Consultor de Negocios | Fecha: {fecha_hoy}</p>
+        <p style="color:#d4edda; margin:5px;">Consultor de Negocios Inteligente para Guatemala | Fecha: {fecha_hoy}</p>
     </div>
 """, unsafe_allow_html=True)
 
@@ -137,8 +139,8 @@ tab1, tab2, tab3, tab4 = st.tabs(["📍 Ubicación", "💵 Capital", "🏬 Nicho
 # TAB 1: UBICACIÓN
 with tab1:
     st.subheader("📍 Análisis de Ubicación Estratégica")
-    negocio = st.text_input("¿Qué negocio deseas abrir?", placeholder="Ej. Cafetería, Barbería...")
-    if st.button("Buscar Mejor Ubicación"):
+    negocio = st.text_input("¿Qué negocio deseas abrir?", placeholder="Ej. Cafetería, Barbería...", key="t1_input")
+    if st.button("Buscar Mejor Ubicación", key="t1_btn"):
         sis = f"Eres experto en geomarketing en Guatemala. Fecha: {fecha_hoy}."
         usr = f"Dime las 3 mejores ubicaciones para un(a) {negocio} en Guatemala. Justifica con datos de NSE, tráfico y costo de alquiler por m2 al día de hoy."
         resultado = llamar_ia(sis, usr)
@@ -150,8 +152,8 @@ with tab1:
 # TAB 2: CAPITAL
 with tab2:
     st.subheader("💵 Inversión por Capital")
-    monto = st.number_input("Capital disponible (Q):", min_value=1000, value=50000)
-    if st.button("Ver Oportunidades"):
+    monto = st.number_input("Capital disponible (Q):", min_value=1000, value=50000, key="t2_input")
+    if st.button("Ver Oportunidades", key="t2_btn"):
         sis = f"Analista financiero de PYMES en Guatemala. Año {año_actual}."
         usr = f"Con un capital de Q{monto}, ¿qué 3 negocios son más rentables hoy en Guatemala? Incluye tabla de inversión, ROI estimado y punto de equilibrio."
         resultado = llamar_ia(sis, usr)
@@ -163,8 +165,8 @@ with tab2:
 # TAB 3: NICHOS
 with tab3:
     st.subheader("🏬 Nichos de Mercado por Zona")
-    zona = st.text_input("Ingresa una zona o municipio:", placeholder="Ej. Zona 18, Mixco, Antigua...")
-    if st.button("Identificar Nichos"):
+    zona = st.text_input("Ingresa una zona o municipio:", placeholder="Ej. Zona 18, Mixco, Antigua...", key="t3_input")
+    if st.button("Identificar Nichos", key="t3_btn"):
         sis = f"Consultor de desarrollo local en Guatemala. Fecha: {fecha_hoy}."
         usr = f"Para la ubicación {zona}, identifica 3 negocios que falten o tengan alta demanda insatisfecha. Justifica con datos demográficos y brechas de mercado actuales."
         resultado = llamar_ia(sis, usr)
@@ -184,7 +186,7 @@ with tab4:
         cap = st.text_input("Capital estimado:", key="p3")
         soc = st.selectbox("Tipo de sociedad:", ["Empresa Individual", "S.A.", "Pequeño Contribuyente"])
 
-    if st.button("Generar Plan Completo"):
+    if st.button("Generar Plan Completo", key="p4_btn"):
         sis = f"Consultor senior de negocios en Guatemala. Experto en SAT y Registro Mercantil. Fecha: {fecha_hoy}."
         usr = f"Crea un plan de negocios para '{idea}' en '{ubi}' con un capital de '{cap}'. Incluye: Resumen, Tabla de trámites legales en Guatemala (SAT/Registro Mercantil), Costos operativos y Estrategia de Marketing."
         resultado = llamar_ia(sis, usr)
