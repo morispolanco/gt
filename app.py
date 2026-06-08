@@ -2,8 +2,8 @@ import streamlit as st
 from openai import OpenAI
 from datetime import datetime
 from fpdf import FPDF
-import unicodedata
 import re
+import unicodedata
 
 # ═══════════════════════════════════════════════════════════════════════
 # CONFIGURACIÓN DE PÁGINA
@@ -28,34 +28,26 @@ if not api_key:
     st.stop()
 
 client = OpenAI(api_key=api_key, base_url=base_url)
-
 MODELO = "openai/gpt-oss-20b:free"
 
 # ═══════════════════════════════════════════════════════════════════════
-# FUNCIÓN PARA LIMPIAR TEXTO PARA PDF (elimina emojis y normaliza)
+# FUNCIÓN PARA LIMPIAR TEXTO PARA PDF
 # ═══════════════════════════════════════════════════════════════════════
 def limpiar_para_pdf(texto):
-    """
-    Normaliza texto para FPDF:
-    1. Elimina emojis y caracteres no soportados
-    2. Normaliza tildes a ASCII básico
-    3. Elimina caracteres de control
-    """
     if not texto:
         return ""
 
-    # Eliminar emojis y caracteres pictográficos
-    # Patrón que captura rangos de emojis y símbolos
-    patron_emojis = re.compile(
+    # Eliminar emojis
+    patron_emojis = re.compile有
         "["
-        "\U0001F600-\U0001F64F"  # emoticons
-        "\U0001F300-\U0001F5FF"  # símbolos y pictogramas
-        "\U0001F680-\U0001F6FF"  # transporte y mapas
-        "\U0001F1E0-\U0001F1FF"  # banderas
-        "\U00002702-\U000027B0"  # dingbats
+        "\U0001F600-\U0001F64F"
+        "\U0001F300-\U0001F5FF"
+        "\U0001F680-\U0001F6FF"
+        "\U0001F1E0-\U0001F1FF"
+        "\U00002702-\U000027B0"
         "\U000024C2-\U0001F251"
-        "\U0001F900-\U0001F9FF"  # suplemento
-        "\U0001FA00-\U0001FA6F"  # símbolos extendidos
+        "\U0001F900-\U0001F9FF"
+        "\U0001FA00-\U0001FA6F"
         "\U0001FA70-\U0001FAFF"
         "]+",
         flags=re.UNICODE
@@ -63,50 +55,41 @@ def limpiar_para_pdf(texto):
 
     texto = patron_emojis.sub(r'', texto)
 
-    # Normalizar tildes: opción A - mantener con encoding latin-1
-    # Opción B - reemplazar por equivalentes ASCII (más compatible)
-    # Usamos B para máxima compatibilidad
-
+    # Reemplazar tildes y caracteres especiales
     reemplazos = {
         'á': 'a', 'é': 'e', 'í': 'i', 'ó': 'o', 'ú': 'u',
         'Á': 'A', 'É': 'E', 'Í': 'I', 'Ó': 'O', 'Ú': 'U',
         'ñ': 'n', 'Ñ': 'N', 'ü': 'u', 'Ü': 'U',
         '´': "'", '`': "'", '“': '"', '”': '"', '‘': "'", '’': "'",
-        '—': '-', '–': '-', '…': '...', '•': '*',
+        '—': '-', '–': '-', '…': '...', '•': '*', '·': '*',
+        'à': 'a', 'è': 'e', 'ì': 'i', 'ò': 'o', 'ù': 'u',
+        'À': 'A', 'È': 'E', 'Ì': 'I', 'Ò': 'O', 'Ù': 'U',
+        'â': 'a', 'ê': 'e', 'î': 'i', 'ô': 'o', 'û': 'u',
+        'Â': 'A', 'Ê': 'E', 'Î': 'I', 'Ô': 'O', 'Û': 'U',
     }
 
     for orig, repl in reemplazos.items():
         texto = texto.replace(orig, repl)
 
-    # Eliminar cualquier carácter que no sea ASCII imprimible o latin-1 básico
+    # Filtrar caracteres no imprimibles
     texto_limpio = ""
     for char in texto:
         codigo = ord(char)
-        # Permitir ASCII imprimible y algunos latin-1 básicos comunes
-        if (32 <= codigo <= 126) or (160 <= codigo <= 255):
+        if (32 <= codigo <= 126) or codigo in [10, 13]:
             texto_limpio += char
-        elif codigo in [10, 13]:  # newlines
+        elif 160 <= codigo <= 255:
             texto_limpio += char
-        else:
-            # Reemplazar otros caracteres por espacio o quitar
-            if unicodedata.category(char).startswith('Z'):
-                texto_limpio += ' '
 
     return texto_limpio
 
 # ═══════════════════════════════════════════════════════════════════════
-# GENERADOR DE PDF PROFESIONAL (CORREGIDO PARA UNICODE)
+# GENERADOR DE PDF
 # ═══════════════════════════════════════════════════════════════════════
 class ConsultorPDF(FPDF):
-    def __init__(self):
-        super().__init__()
-        # Usar encoding latin-1 que es más compatible con FPDF
-        # pero también preparamos fallback a ASCII
-
     def header(self):
         self.set_font('Helvetica', 'B', 12)
         self.set_text_color(26, 95, 42)
-        self.cell(0, 10, 'GUATEEMPRENDE IA PRO - CONSULTORIA', 0, 0, 'L')
+        self.cell(0, 10, 'GUATEEMPRENDE IA PRO', 0, 0, 'L')
         self.set_font('Helvetica', '', 8)
         self.set_text_color(100, 100, 100)
         self.cell(0, 10, f'Fecha: {fecha_hoy}', 0, 0, 'R')
@@ -119,13 +102,9 @@ class ConsultorPDF(FPDF):
         self.set_y(-15)
         self.set_font('Helvetica', 'I', 8)
         self.set_text_color(150, 150, 150)
-        self.cell(0, 10, f'Pagina {self.page_no()} | GuateEmprende IA Pro', 0, 0, 'C')
+        self.cell(0, 10, f'Pagina {self.page_no()}', 0, 0, 'C')
 
 def generar_pdf(titulo, contenido_md):
-    """
-    Genera PDF con manejo robusto de caracteres Unicode.
-    Convierte todo a ASCII seguro para FPDF.
-    """
     pdf = ConsultorPDF()
     pdf.add_page()
     pdf.set_auto_page_break(auto=True, margin=15)
@@ -137,66 +116,55 @@ def generar_pdf(titulo, contenido_md):
     pdf.multi_cell(0, 10, titulo_limpio.upper(), align='C')
     pdf.ln(5)
 
-    # Contenido - limpiar todo antes de usar
+    # Contenido
     pdf.set_font('Helvetica', '', 10)
     pdf.set_text_color(40, 40, 40)
 
-    # Procesar línea por línea
-    lineas = contenido_md.split('\n')
-
-    for linea_original in lineas:
-        # Limpiar primero
+    for linea_original in contenido_md.split('\n'):
         linea = limpiar_para_pdf(linea_original.strip())
         if not linea:
             pdf.ln(2)
             continue
 
         try:
-            # Detectar formato de encabezados por simbolos ### o ##
             if linea.startswith('### '):
                 pdf.set_font('Helvetica', 'B', 11)
                 pdf.set_text_color(26, 95, 42)
-                titulo_limpio = linea[4:] if len(linea) > 4 else ""
-                pdf.multi_cell(0, 7, titulo_limpio)
+                pdf.multi_cell(0, 7, linea[4:])
                 pdf.set_text_color(40, 40, 40)
                 pdf.set_font('Helvetica', '', 10)
-                continue
+
             elif linea.startswith('## '):
                 pdf.set_font('Helvetica', 'B', 13)
                 pdf.ln(2)
-                titulo_limpio = linea[3:] if len(linea) > 3 else ""
-                pdf.multi_cell(0, 8, titulo_limpio)
+                pdf.multi_cell(0, 8, linea[3:])
                 pdf.set_font('Helvetica', '', 10)
-                continue
+
             elif linea.startswith('|'):
-                # Tablas en fuente monospace pequeña
                 pdf.set_font('Courier', '', 7)
                 pdf.multi_cell(0, 4, linea)
                 pdf.set_font('Helvetica', '', 10)
-                continue
 
-            # Texto normal
-            pdf.multi_cell(0, 5, linea)
+            else:
+                pdf.multi_cell(0, 5, linea)
 
         except Exception as e:
-            # Si algo falla, intentar con reemplazo total
             try:
-                linea_segura = ''.join(c for c in linea if ord(c) < 128)
-                pdf.multi_cell(0, 5, linea_segura)
+                # Último intento con solo ASCII
+                linea_segura = ''.join(c for c in linea if 32 <= ord(c) <= 126)
+                pdf.multi adrenaline_cell(0, 5, linea_segura)
             except:
-                pass  # Ignorar línea problemática
+                pass
 
-    # Generar bytes
     try:
         pdf_bytes = pdf.output(dest='S').encode('latin-1', errors='replace')
     except:
-        # Fallback completo: reconstruir con solo ASCII
         pdf_bytes = pdf.output(dest='S').encode('ascii', errors='ignore')
 
     return pdf_bytes
 
 # ═══════════════════════════════════════════════════════════════════════
-# INTERFAZ PRINCIPAL
+# INTERFAZ
 # ═══════════════════════════════════════════════════════════════════════
 st.markdown(f"""
     <div style="background-color:#1a5f2a; padding:20px; border-radius:10px; text-align:center;">
@@ -240,7 +208,9 @@ with tab1:
     negocio = st.text_input("Que negocio deseas abrir?", placeholder="Ej. Cafeteria, Barberia", key="t1")
 
     if st.button("Buscar Mejor Ubicacion", type="primary", key="b1"):
-        if negocio:
+        if not negocio:
+            st.warning("Ingresa el tipo de negocio.")
+        else:
             sis = f"Eres experto en geomarketing en Guatemala. Fecha: {fecha_hoy}."
             usr = f"""Analiza las 3 mejores ubicaciones para una {negocio} en Guatemala.
 
@@ -254,20 +224,16 @@ Para cada ubicacion incluye:
 7. Puntaje de viabilidad 1-10
 
 Usa tablas Markdown. Se especifico con datos de mercado actuales."""
+
             resultado = llamar_ia(sis, usr)
             if resultado:
                 st.markdown(resultado)
                 try:
                     pdf_data = generar_pdf(f"Ubicacion: {negocio}", resultado)
-                    st.download_button("Descargar PDF", data=pdf_data, file_name=f"ubicacion_{negocio[:15]}.pdf", mime="application/pdf")
+                    st.download_button("Descargar PDF", data=pdf_data, file_name="ubicacion.pdf", mime="application/pdf")
                 except Exception as e:
-                    st.warning(f"PDF no disponible: {str(e)[:100]}")
-                    st.download_button("Descargar TXT", data=resultado, file_name=f"ubicacion_{negocio[:15]}.txt", mime="text/plain")
-        else:
-        st.warning("Ingresa el tipo de negocio.")
-
-    # Corrección del bloque anterior - estaba mal indentado
-    st.warning("Ingresa el tipo de negocio.")
+                    st.warning(f"Error PDF: {e}")
+                    st.download_button("Descargar TXT", data=resultado, file_name="ubicacion.txt", mime="text/plain")
 
 # ── TAB 2: CAPITAL ───────────────────────────────────────────────────
 with tab2:
@@ -288,15 +254,16 @@ Para cada negocio incluye:
 7. Principal riesgo y mitigacion
 
 Usa tablas Markdown."""
+
         resultado = llamar_ia(sis, usr)
         if resultado:
             st.markdown(resultado)
             try:
                 pdf_data = generar_pdf(f"Inversion Q{monto:,.0f}", resultado)
-                st.download_button("Descargar PDF", data=pdf_data, file_name=f"inversion_q{monto:,.0f}.pdf", mime="application/pdf")
+                st.download_button("Descargar PDF", data=pdf_data, file_name="inversion.pdf", mime="application/pdf")
             except Exception as e:
-                st.warning(f"PDF no disponible")
-                st.download_button("Descargar TXT", data=resultado, file_name=f"inversion_q{monto:,.0f}.txt", mime="text/plain")
+                st.warning(f"Error PDF: {e}")
+                st.download_button("Descargar TXT", data=resultado, file_name="inversion.txt", mime="text/plain")
 
 # ── TAB 3: NICHOS ────────────────────────────────────────────────────
 with tab3:
@@ -304,7 +271,9 @@ with tab3:
     zona = st.text_input("Ingresa zona o municipio:", placeholder="Ej. Zona 18, Mixco, Antigua", key="t3")
 
     if st.button("Identificar Nichos", type="primary", key="b3"):
-        if zona:
+        if not zona:
+            st.warning("Ingresa la zona.")
+        else:
             sis = f"Eres consultor de desarrollo economico local en Guatemala. Fecha: {fecha_hoy}."
             usr = f"""Para la ubicacion '{zona}' en Guatemala, identifica 3 negocios con alta demanda y baja oferta.
 
@@ -319,17 +288,16 @@ Para cada nicho incluye:
 8. Potencial de escalamiento
 
 Se especifico de la zona."""
+
             resultado = llamar_ia(sis, usr)
             if resultado:
                 st.markdown(resultado)
                 try:
                     pdf_data = generar_pdf(f"Nichos: {zona}", resultado)
-                    st.download_button("Descargar PDF", data=pdf_data, file_name=f"nichos_{zona[:15]}.pdf", mime="application/pdf")
+                    st.download_button("Descargar PDF", data=pdf_data, file_name="nichos.pdf", mime="application/pdf")
                 except Exception as e:
-                    st.warning(f"PDF no disponible")
-                    st.download_button("Descargar TXT", data=resultado, file_name=f"nichos_{zona[:15]}.txt", mime="text/plain")
-        else:
-            st.warning("Ingresa la zona.")
+                    st.warning(f"Error PDF: {e}")
+                    st.download_button("Descargar TXT", data=resultado, file_name="nichos.txt", mime="text/plain")
 
 # ── TAB 4: PLAN DE NEGOCIOS ───────────────────────────────────────────
 with tab4:
@@ -345,7 +313,9 @@ with tab4:
     diferenciador = st.text_area("Diferenciador:", height=80, key="p4")
 
     if st.button("Generar Plan Completo", type="primary", key="b4"):
-        if idea:
+        if not idea:
+            st.warning("Ingresa la idea de negocio.")
+        else:
             sis = f"Eres consultor senior de negocios en Guatemala. Experto en SAT y Registro Mercantil. Fecha: {fecha_hoy}."
             usr = f"""Crea un plan de negocios para Guatemala:
 
@@ -366,17 +336,16 @@ ESTRUCTURA:
 8. PLAN DE IMPLEMENTACION (30 dias)
 
 Usa tablas Markdown. Se profesional y realista."""
+
             resultado = llamar_ia(sis, usr)
             if resultado:
                 st.markdown(resultado)
                 try:
                     pdf_data = generar_pdf(f"Plan: {idea}", resultado)
-                    st.download_button("Descargar Plan PDF", data=pdf_data, file_name=f"plan_{idea[:15]}.pdf", mime="application/pdf")
+                    st.download_button("Descargar Plan PDF", data=pdf_data, file_name="plan.pdf", mime="application/pdf")
                 except Exception as e:
-                    st.warning(f"PDF no disponible")
-                    st.download_button("Descargar TXT", data=resultado, file_name=f"plan_{idea[:15]}.txt", mime="text/plain")
-        else:
-            st.warning("Ingresa la idea de negocio.")
+                    st.warning(f"Error PDF: {e}")
+                    st.download_button("Descargar TXT", data=resultado, file_name="plan.txt", mime="text/plain")
 
 # ═══════════════════════════════════════════════════════════════════════
 # FOOTER
